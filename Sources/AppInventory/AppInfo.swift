@@ -9,6 +9,7 @@ struct AppInfo: Identifiable {
     let architecture: Architecture
     let source: AppSource
     let developer: String   // signing identity (e.g. "Mozilla Corporation"), or "" if none
+    let website: String     // best-effort download/developer URL, or "" if unknown
 
     enum Architecture: String, CaseIterable, Comparable {
         case appleSilicon = "Apple Silicon"
@@ -44,10 +45,10 @@ struct AppInfo: Identifiable {
     }
 
     var csvRow: String {
-        [name, version, architecture.rawValue, source.rawValue, developer, bundleID, path.path]
+        [name, version, architecture.rawValue, source.rawValue, developer, website, bundleID, path.path]
             .map { field in "\"\(field.replacingOccurrences(of: "\"", with: "\"\""))\"" }
             .joined(separator: ",")
     }
 
-    static let csvHeader = "Name,Version,Architecture,Source,Signed By,Bundle ID,Path"
+    static let csvHeader = "Name,Version,Architecture,Source,Signed By,Website,Bundle ID,Path"
 }

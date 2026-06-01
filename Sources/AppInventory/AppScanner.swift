@@ -115,6 +115,7 @@ class AppScanner: ObservableObject {
             atPath: appURL.appendingPathComponent("Contents/_MASReceipt/receipt").path
         )
         let (source, developer) = detectSource(appURL, hasReceipt: receiptExists)
+        let website = downloadWebsite(appURL, bundleID: bundleID, source: source)
 
         return AppInfo(
             name: name,
@@ -123,7 +124,8 @@ class AppScanner: ObservableObject {
             version: version,
             architecture: arch,
             source: source,
-            developer: developer
+            developer: developer,
+            website: website
         )
     }
 
@@ -202,5 +204,60 @@ class AppScanner: ObservableObject {
             name = String(name[..<paren.lowerBound])
         }
         return name
+    }
+
+    // MARK: - Download Website
+
+    /// Best-effort URL for where an app was obtained: the real "where from" download
+    /// URL if macOS still has it, otherwise the developer's site derived from the
+    /// bundle ID (only for signed apps, where the bundle ID is a real reverse-DNS domain).
+    private func downloadWebsite(_ appURL: URL, bundleID: String, source: AppInfo.AppSource) -> String {
+        if let url = whereFromURL(appURL) { return url }
+        switch source {
+        case .appStore, .developerID, .development:
+            return homepage(fromBundleID: bundleID) ?? ""
+        case .unsigned, .unknown:
+            return ""
+        }
+    }
+
+    /// Reads the `kMDItemWhereFroms` quarantine metadata (a binary plist stored as an
+    /// extended attribute) and returns the first http(s) URL, if any.
+    private func whereFromURL(_ url: URL) -> String? {
+        let name = "com.apple.metadata:kMDItemWhereFroms"
+        let length = getxattr(url.path, name, nil, 0, 0, 0)
+        guard length > 0 else { return nil }
+
+        var data = Data(count: length)
+        let read = data.withUnsafeMutableBytes { buf in
+            getxattr(url.path, name, buf.baseAddress, length, 0, 0)
+        }
+        guard read > 0 else { return nil }
+
+        guard let plist = try? PropertyListSerialization.propertyList(from: data, format: nil),
+              let urls = plist as? [String] else { return nil }
+        return urls.first { $0.hasPrefix("http://") || $0.hasPrefix("https://") }
+    }
+
+    /// Derives a developer homepage from a reverse-DNS bundle ID,
+    /// e.g. "org.mozilla.firefox" -> "https://mozilla.org",
+    ///      "uk.co.tla-systems.pcalc" -> "https://tla-systems.co.uk".
+    private func homepage(fromBundleID id: String) -> String? {
+        let parts = id.split(separator: ".").map(String.init)
+        guard parts.count >= 2, !parts[0].isEmpty, !parts[1].isEmpty else { return nil }
+
+        // Handle country-code domains with a second level, e.g. "uk.co.<org>".
+        let secondLevels: Set<String> = ["co", "com", "org", "net", "ac", "gov", "edu", "ne", "or"]
+        let labels: [String]
+        if parts[0].count == 2, parts.count >= 3, secondLevels.contains(parts[1].lowercased()) {
+            labels = Array(parts[0...2])
+        } else {
+            labels = Array(parts[0...1])
+        }
+
+        let domain = labels.reversed().joined(separator: ".").lowercased()
+        // Skip obviously non-domain placeholders used by self-built apps.
+        guard domain.contains(".") else { return nil }
+        return "https://\(domain)"
     }
 }

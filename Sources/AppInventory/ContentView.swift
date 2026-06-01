@@ -159,6 +159,21 @@ struct ContentView: View {
             }
             .width(min: 120, ideal: 170)
 
+            TableColumn("Website", value: \.website) { app in
+                if let url = URL(string: app.website), !app.website.isEmpty {
+                    Link(destination: url) {
+                        Text(displayHost(app.website))
+                            .font(.callout)
+                            .lineLimit(1)
+                            .truncationMode(.tail)
+                    }
+                    .help(app.website)
+                } else {
+                    Text("—").font(.callout).foregroundColor(.secondary)
+                }
+            }
+            .width(min: 120, ideal: 160)
+
             TableColumn("Bundle ID", value: \.bundleID) { app in
                 Text(app.bundleID)
                     .font(.system(.callout, design: .monospaced))
@@ -179,11 +194,33 @@ struct ContentView: View {
         .contextMenu(forSelectionType: AppInfo.ID.self) { ids in
             Button("Show in Finder") { showInFinder(ids) }
             Button("Open") { openApps(ids) }
+            if appsMatching(ids).contains(where: { !$0.website.isEmpty }) {
+                Button("Open Download Website") { openWebsites(ids) }
+            }
             Divider()
             Button("Copy Path") { copyPaths(ids) }
             Button("Copy Bundle ID") { copyBundleIDs(ids) }
         } primaryAction: { ids in
             showInFinder(ids)
+        }
+    }
+
+    /// Strips the scheme and a leading "www." for a compact, readable link label.
+    private func displayHost(_ urlString: String) -> String {
+        var s = urlString
+        for prefix in ["https://", "http://"] where s.hasPrefix(prefix) {
+            s.removeFirst(prefix.count)
+        }
+        if s.hasPrefix("www.") { s.removeFirst(4) }
+        if s.hasSuffix("/") { s.removeLast() }
+        return s
+    }
+
+    private func openWebsites(_ ids: Set<AppInfo.ID>) {
+        for app in appsMatching(ids) where !app.website.isEmpty {
+            if let url = URL(string: app.website) {
+                NSWorkspace.shared.open(url)
+            }
         }
     }
 
