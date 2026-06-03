@@ -33,3 +33,10 @@ The app icon is generated from [`make_icon.py`](make_icon.py); `build_app.sh` bu
 
 - macOS 13+
 - Swift 5.9+ toolchain
+
+## Acknowledgments
+
+Developed collaboratively with [Claude Code](https://claude.com/claude-code)
+(Anthropic's Claude Opus 4.8), which contributed the application code, the icon
+generator, and the build tooling. Individual contributions are recorded via
+`Co-Authored-By` trailers in the commit history.
