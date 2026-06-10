@@ -5,6 +5,10 @@ APP_NAME="AppInventory"
 BUILD_DIR=".build/release"
 APP_DIR="$APP_NAME.app/Contents"
 
+# Version: single source of truth in the VERSION file (auto-bumped per commit).
+VERSION="1.0"
+[ -f VERSION ] && VERSION=$(tr -d '[:space:]' < VERSION)
+
 # Build
 swift build -c release
 
@@ -55,7 +59,12 @@ cat > "$APP_DIR/Info.plist" << 'PLIST'
 </plist>
 PLIST
 
-echo "Built: $(pwd)/$APP_NAME.app"
+# Stamp the current version into the bundle.
+/usr/libexec/PlistBuddy -c "Set :CFBundleVersion $VERSION" \
+                        -c "Set :CFBundleShortVersionString $VERSION" \
+                        "$APP_DIR/Info.plist"
+
+echo "Built: $(pwd)/$APP_NAME.app (v$VERSION)"
 
 # Install to /Applications. Remove the destination FIRST — otherwise `cp -R src dst`
 # copies INTO the existing bundle, creating a stale nested AppInventory.app/AppInventory.app.

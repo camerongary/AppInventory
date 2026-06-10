@@ -272,6 +272,12 @@ struct ContentView: View {
                     .font(.callout)
                     .foregroundColor(.secondary)
 
+                if let date = scanner.lastScanDate {
+                    Text("• Last scanned \(date.formatted(.relative(presentation: .named)))")
+                        .font(.callout)
+                        .foregroundColor(.secondary)
+                }
+
                 Spacer()
 
                 let intelCount = scanner.apps.filter { $0.architecture == .intel }.count

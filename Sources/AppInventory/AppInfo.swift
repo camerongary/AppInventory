@@ -1,7 +1,7 @@
 import Foundation
 
-struct AppInfo: Identifiable {
-    let id = UUID()
+struct AppInfo: Identifiable, Codable {
+    var id = UUID()
     let name: String
     let path: URL
     let bundleID: String
@@ -11,7 +11,7 @@ struct AppInfo: Identifiable {
     let developer: String   // signing identity (e.g. "Mozilla Corporation"), or "" if none
     let website: String     // best-effort download/developer URL, or "" if unknown
 
-    enum Architecture: String, CaseIterable, Comparable {
+    enum Architecture: String, CaseIterable, Comparable, Codable {
         case appleSilicon = "Apple Silicon"
         case intel = "Intel"
         case universal = "Universal"
@@ -22,7 +22,7 @@ struct AppInfo: Identifiable {
         }
     }
 
-    enum AppSource: String, CaseIterable, Comparable {
+    enum AppSource: String, CaseIterable, Comparable, Codable {
         case appStore = "App Store"
         case developerID = "Developer ID"
         case development = "Development"

@@ -7,6 +7,11 @@ class AppScanner: ObservableObject {
     @Published var isScanning = false
     @Published var scanProgress = ""
     @Published var totalScanned = 0
+    @Published var lastScanDate: Date?
+
+    init() {
+        loadCache()
+    }
 
     private let appleVendorPrefixes = [
         "com.apple.", "com.osxfuse.", "com.microsoft.OneDrive",
@@ -59,8 +64,43 @@ class AppScanner: ObservableObject {
             }
 
             apps = unique.sorted { $0.name.localizedCaseInsensitiveCompare($1.name) == .orderedAscending }
+            lastScanDate = Date()
             isScanning = false
             scanProgress = "Found \(apps.count) third-party apps"
+            saveCache()
+        }
+    }
+
+    // MARK: - Persistence
+
+    /// Wrapper persisted to disk so the previous scan can be shown on next launch.
+    private struct CachedScan: Codable {
+        let date: Date
+        let apps: [AppInfo]
+    }
+
+    private var cacheURL: URL? {
+        guard let support = FileManager.default.urls(
+            for: .applicationSupportDirectory, in: .userDomainMask).first else { return nil }
+        let dir = support.appendingPathComponent("AppInventory", isDirectory: true)
+        try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+        return dir.appendingPathComponent("last-scan.json")
+    }
+
+    private func loadCache() {
+        guard let url = cacheURL,
+              let data = try? Data(contentsOf: url),
+              let cached = try? JSONDecoder().decode(CachedScan.self, from: data) else { return }
+        apps = cached.apps
+        lastScanDate = cached.date
+        scanProgress = "Loaded \(apps.count) apps from last scan"
+    }
+
+    private func saveCache() {
+        guard let url = cacheURL else { return }
+        let cached = CachedScan(date: lastScanDate ?? Date(), apps: apps)
+        if let data = try? JSONEncoder().encode(cached) {
+            try? data.write(to: url, options: .atomic)
         }
     }
 

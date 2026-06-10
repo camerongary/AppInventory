@@ -1,0 +1,22 @@
+#!/bin/bash
+# Auto-increment the patch component of VERSION on every commit, and include
+# the bump in the commit itself. Enable once with:
+#   git config core.hooksPath .githooks
+set -e
+
+VERSION_FILE="VERSION"
+[ -f "$VERSION_FILE" ] || exit 0
+
+current=$(tr -d '[:space:]' < "$VERSION_FILE")
+IFS='.' read -r major minor patch <<< "$current"
+
+# Default any missing components to 0 so a malformed file still advances.
+major=${major:-0}
+minor=${minor:-0}
+patch=${patch:-0}
+patch=$((patch + 1))
+
+new="${major}.${minor}.${patch}"
+printf '%s\n' "$new" > "$VERSION_FILE"
+git add "$VERSION_FILE"
+echo "pre-commit: version bumped $current -> $new"
