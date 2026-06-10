@@ -8,6 +8,12 @@ struct AppInventoryApp: App {
         }
         .commands {
             CommandGroup(replacing: .newItem) {}
+            CommandGroup(replacing: .help) {
+                Link("App Inventory Help",
+                     destination: URL(string: "https://github.com/camerongary/AppInventory#readme")!)
+                Link("View Project on GitHub",
+                     destination: URL(string: "https://github.com/camerongary/AppInventory")!)
+            }
         }
     }
 }
