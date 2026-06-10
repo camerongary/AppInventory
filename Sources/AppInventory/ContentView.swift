@@ -65,19 +65,25 @@ struct ContentView: View {
 
             Divider().frame(height: 20)
 
-            Picker("Architecture", selection: $selectedArchFilter) {
-                Text("All Architectures").tag(Optional<AppInfo.Architecture>.none)
-                ForEach(AppInfo.Architecture.allCases, id: \.self) { arch in
-                    Text(arch.rawValue).tag(Optional(arch))
+            Menu(selectedArchFilter?.rawValue ?? "All Architectures") {
+                Picker("Architecture", selection: $selectedArchFilter) {
+                    Text("All Architectures").tag(Optional<AppInfo.Architecture>.none)
+                    ForEach(AppInfo.Architecture.allCases, id: \.self) { arch in
+                        Text(arch.rawValue).tag(Optional(arch))
+                    }
                 }
+                .pickerStyle(.inline)
             }
             .frame(width: 180)
 
-            Picker("Source", selection: $selectedSourceFilter) {
-                Text("All Sources").tag(Optional<AppInfo.AppSource>.none)
-                ForEach(AppInfo.AppSource.allCases, id: \.self) { source in
-                    Text(source.rawValue).tag(Optional(source))
+            Menu(selectedSourceFilter?.rawValue ?? "All Sources") {
+                Picker("Source", selection: $selectedSourceFilter) {
+                    Text("All Sources").tag(Optional<AppInfo.AppSource>.none)
+                    ForEach(AppInfo.AppSource.allCases, id: \.self) { source in
+                        Text(source.rawValue).tag(Optional(source))
+                    }
                 }
+                .pickerStyle(.inline)
             }
             .frame(width: 160)
 
