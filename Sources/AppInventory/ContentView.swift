@@ -91,7 +91,10 @@ struct ContentView: View {
 
             if !scanner.apps.isEmpty {
                 Button(action: exportCSV) {
-                    Label("Export CSV", systemImage: "square.and.arrow.up")
+                    Label("Export CSV", systemImage: "tablecells")
+                }
+                Button(action: exportPDF) {
+                    Label("Export PDF", systemImage: "doc.richtext")
                 }
                 Button(action: copyToClipboard) {
                     Label("Copy List", systemImage: "doc.on.clipboard")
@@ -341,6 +344,17 @@ struct ContentView: View {
         panel.nameFieldStringValue = "AppInventory.csv"
         if panel.runModal() == .OK, let url = panel.url {
             try? content.write(to: url, atomically: true, encoding: .utf8)
+        }
+    }
+
+    private func exportPDF() {
+        guard let data = PDFExporter.makePDF(apps: displayApps, lastScanDate: scanner.lastScanDate) else { return }
+
+        let panel = NSSavePanel()
+        panel.allowedContentTypes = [UTType.pdf]
+        panel.nameFieldStringValue = "AppInventory.pdf"
+        if panel.runModal() == .OK, let url = panel.url {
+            try? data.write(to: url, options: .atomic)
         }
     }
 
