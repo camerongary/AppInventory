@@ -17,8 +17,10 @@ For each app it reports:
 
 - Scans `/Applications`, `~/Applications`, and `/Applications/Utilities`
 - Sortable columns, search, and filters by architecture and source
+- **Website** column with a clickable link to re-download each app
+- Remembers your last scan and shows it on launch
 - Right-click a row: **Show in Finder**, **Open**, **Copy Path**, **Copy Bundle ID**
-- **Export CSV** and **Copy List** for your rebuild checklist
+- Export your inventory as **CSV**, **JSON**, or **PDF** (the PDF keeps the website links clickable), plus **Copy List** for a quick rebuild checklist
 
 ## Download
 
