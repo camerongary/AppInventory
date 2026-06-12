@@ -1,11 +1,26 @@
 #!/bin/bash
-# Auto-increment the patch component of VERSION on every commit, and include
-# the bump in the commit itself. Enable once with:
+# Auto-increment the patch component of VERSION when a commit changes app code,
+# and include the bump in the commit itself. Documentation-only commits (README,
+# LICENSE, etc.) do NOT bump the version. Enable once with:
 #   git config core.hooksPath .githooks
 set -e
 
 VERSION_FILE="VERSION"
 [ -f "$VERSION_FILE" ] || exit 0
+
+# Only bump when something that affects the built app is staged. Doc/tooling/
+# packaging changes (*.md, LICENSE, .githooks, make_dmg.sh, .gitignore) don't.
+app_changed=false
+while IFS= read -r f; do
+    case "$f" in
+        *.swift|build_app.sh|make_icon.py|AppIcon.icns) app_changed=true ;;
+    esac
+done < <(git diff --cached --name-only)
+
+if [ "$app_changed" = false ]; then
+    echo "pre-commit: no app code changes, version not bumped"
+    exit 0
+fi
 
 current=$(tr -d '[:space:]' < "$VERSION_FILE")
 IFS='.' read -r major minor patch <<< "$current"
