@@ -93,6 +93,9 @@ struct ContentView: View {
                 Button(action: exportCSV) {
                     Label("Export CSV", systemImage: "tablecells")
                 }
+                Button(action: exportJSON) {
+                    Label("Export JSON", systemImage: "curlybraces")
+                }
                 Button(action: exportPDF) {
                     Label("Export PDF", systemImage: "doc.richtext")
                 }
@@ -344,6 +347,19 @@ struct ContentView: View {
         panel.nameFieldStringValue = "AppInventory.csv"
         if panel.runModal() == .OK, let url = panel.url {
             try? content.write(to: url, atomically: true, encoding: .utf8)
+        }
+    }
+
+    private func exportJSON() {
+        let encoder = JSONEncoder()
+        encoder.outputFormatting = [.prettyPrinted, .sortedKeys, .withoutEscapingSlashes]
+        guard let data = try? encoder.encode(displayApps.map(\.exportItem)) else { return }
+
+        let panel = NSSavePanel()
+        panel.allowedContentTypes = [UTType.json]
+        panel.nameFieldStringValue = "AppInventory.json"
+        if panel.runModal() == .OK, let url = panel.url {
+            try? data.write(to: url, options: .atomic)
         }
     }
 

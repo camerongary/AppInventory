@@ -51,4 +51,23 @@ struct AppInfo: Identifiable, Codable {
     }
 
     static let csvHeader = "Name,Version,Architecture,Source,Signed By,Website,Bundle ID,Path"
+
+    /// Clean, stable shape for JSON export: plain POSIX path and CSV-matching
+    /// field names, in a logical (non-alphabetical) order.
+    struct Export: Encodable {
+        let name: String
+        let version: String
+        let architecture: String
+        let source: String
+        let signedBy: String
+        let website: String
+        let bundleID: String
+        let path: String
+    }
+
+    var exportItem: Export {
+        Export(name: name, version: version, architecture: architecture.rawValue,
+               source: source.rawValue, signedBy: developer, website: website,
+               bundleID: bundleID, path: path.path)
+    }
 }
