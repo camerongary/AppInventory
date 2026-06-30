@@ -1,4 +1,5 @@
 import Foundation
+import CoreTransferable
 
 struct AppInfo: Identifiable, Codable {
     var id = UUID()
@@ -69,5 +70,15 @@ struct AppInfo: Identifiable, Codable {
         Export(name: name, version: version, architecture: architecture.rawValue,
                source: source.rawValue, signedBy: developer, website: website,
                bundleID: bundleID, path: path.path)
+    }
+}
+
+// Lets rows be dragged to Finder/Terminal/editors and copied with ⌘C, offering
+// both the app's file URL and its POSIX path so each destination gets a sensible
+// representation (Finder → the bundle, text fields → the path).
+extension AppInfo: Transferable {
+    static var transferRepresentation: some TransferRepresentation {
+        ProxyRepresentation(exporting: \.path)
+        ProxyRepresentation(exporting: { $0.path.path })
     }
 }

@@ -7,7 +7,7 @@ struct ContentView: View {
     @State private var selectedArchFilter: AppInfo.Architecture? = nil
     @State private var selectedSourceFilter: AppInfo.AppSource? = nil
     @State private var sortOrder: [KeyPathComparator<AppInfo>] = [KeyPathComparator(\AppInfo.name)]
-    @State private var selectedAppID: AppInfo.ID? = nil
+    @State private var selection: Set<AppInfo.ID> = []
     @State private var displayApps: [AppInfo] = []
 
     private var sortOrderBinding: Binding<[KeyPathComparator<AppInfo>]> {
@@ -39,6 +39,18 @@ struct ContentView: View {
         .onChange(of: searchText) { _ in recompute() }
         .onChange(of: selectedArchFilter) { _ in recompute() }
         .onChange(of: selectedSourceFilter) { _ in recompute() }
+        .focusedSceneValue(\.inventoryActions, InventoryActions(
+            isScanning: scanner.isScanning,
+            hasApps: !scanner.apps.isEmpty,
+            hasSelection: !selection.isEmpty,
+            scan: { scanner.scan() },
+            exportCSV: exportCSV,
+            exportJSON: exportJSON,
+            exportPDF: exportPDF,
+            copyList: copyToClipboard,
+            showInFinder: { showInFinder(selection) },
+            openSelected: { openApps(selection) }
+        ))
     }
 
     private func recompute(source: [AppInfo]? = nil, order: [KeyPathComparator<AppInfo>]? = nil) {
@@ -127,13 +139,14 @@ struct ContentView: View {
     }
 
     private var appTable: some View {
-        Table(displayApps, selection: $selectedAppID, sortOrder: sortOrderBinding) {
+        Table(displayApps, selection: $selection, sortOrder: sortOrderBinding) {
             TableColumn("Name", value: \.name) { app in
                 HStack(spacing: 6) {
                     AppIconView(url: app.path)
                     Text(app.name)
                         .fontWeight(.medium)
                 }
+                .draggable(app)
             }
             .width(min: 180, ideal: 220)
 
@@ -203,6 +216,7 @@ struct ContentView: View {
             .width(min: 200, ideal: 280)
         }
         .searchable(text: $searchText, prompt: "Search by name or bundle ID")
+        .copyable(appsMatching(selection))
         .contextMenu(forSelectionType: AppInfo.ID.self) { ids in
             Button("Show in Finder") { showInFinder(ids) }
             Button("Open") { openApps(ids) }
