@@ -1,29 +1,81 @@
 import SwiftUI
 import UniformTypeIdentifiers
 
+/// Identifies a sortable column so the sort order can be persisted across launches
+/// (a `KeyPathComparator` itself isn't serializable). The key paths here must match
+/// the `value:` key paths used by the table's columns.
+enum SortColumn: String, CaseIterable {
+    case name, version, architecture, source, signedBy, website, bundleID, path
+
+    var comparator: KeyPathComparator<AppInfo> {
+        switch self {
+        case .name:         return KeyPathComparator(\AppInfo.name)
+        case .version:      return KeyPathComparator(\AppInfo.version)
+        case .architecture: return KeyPathComparator(\AppInfo.architecture.rawValue)
+        case .source:       return KeyPathComparator(\AppInfo.source.rawValue)
+        case .signedBy:     return KeyPathComparator(\AppInfo.developer)
+        case .website:      return KeyPathComparator(\AppInfo.website)
+        case .bundleID:     return KeyPathComparator(\AppInfo.bundleID)
+        case .path:         return KeyPathComparator(\AppInfo.path.path)
+        }
+    }
+
+    static func from(_ keyPath: PartialKeyPath<AppInfo>) -> SortColumn? {
+        allCases.first { $0.comparator.keyPath == keyPath }
+    }
+}
+
 struct ContentView: View {
     @StateObject private var scanner = AppScanner()
     @State private var searchText = ""
-    @State private var selectedArchFilter: AppInfo.Architecture? = nil
-    @State private var selectedSourceFilter: AppInfo.AppSource? = nil
-    @State private var sortOrder: [KeyPathComparator<AppInfo>] = [KeyPathComparator(\AppInfo.name)]
+
+    // Persisted view state (Step 7 — state preservation).
+    @AppStorage("filter.architecture") private var archFilterRaw = ""
+    @AppStorage("filter.source") private var sourceFilterRaw = ""
+    @AppStorage("sort.column") private var sortColumnRaw = SortColumn.name.rawValue
+    @AppStorage("sort.ascending") private var sortAscending = true
+
     @State private var selection: Set<AppInfo.ID> = []
     @State private var displayApps: [AppInfo] = []
+    @State private var sortOrder: [KeyPathComparator<AppInfo>]
+
+    init() {
+        let column = SortColumn(rawValue: UserDefaults.standard.string(forKey: "sort.column") ?? "") ?? .name
+        let ascending = UserDefaults.standard.object(forKey: "sort.ascending") as? Bool ?? true
+        var comparator = column.comparator
+        comparator.order = ascending ? .forward : .reverse
+        _sortOrder = State(initialValue: [comparator])
+    }
+
+    private var archFilter: AppInfo.Architecture? { AppInfo.Architecture(rawValue: archFilterRaw) }
+    private var sourceFilter: AppInfo.AppSource? { AppInfo.AppSource(rawValue: sourceFilterRaw) }
 
     private var sortOrderBinding: Binding<[KeyPathComparator<AppInfo>]> {
         Binding(
             get: { sortOrder },
             set: { newOrder in
                 sortOrder = newOrder
+                if let first = newOrder.first, let column = SortColumn.from(first.keyPath) {
+                    sortColumnRaw = column.rawValue
+                    sortAscending = first.order == .forward
+                }
                 recompute(order: newOrder)
             }
         )
     }
 
+    private var archBinding: Binding<AppInfo.Architecture?> {
+        Binding(get: { archFilter },
+                set: { archFilterRaw = $0?.rawValue ?? ""; recompute() })
+    }
+
+    private var sourceBinding: Binding<AppInfo.AppSource?> {
+        Binding(get: { sourceFilter },
+                set: { sourceFilterRaw = $0?.rawValue ?? ""; recompute() })
+    }
+
     var body: some View {
         VStack(spacing: 0) {
-            toolbar
-            Divider()
             if scanner.apps.isEmpty && !scanner.isScanning {
                 emptyState
             } else {
@@ -33,12 +85,11 @@ struct ContentView: View {
             statusBar
         }
         .frame(minWidth: 900, minHeight: 500)
+        .toolbar { toolbarContent }
         .onReceive(scanner.$apps) { newApps in
             recompute(source: newApps)
         }
         .onChange(of: searchText) { _ in recompute() }
-        .onChange(of: selectedArchFilter) { _ in recompute() }
-        .onChange(of: selectedSourceFilter) { _ in recompute() }
         .focusedSceneValue(\.inventoryActions, InventoryActions(
             isScanning: scanner.isScanning,
             hasApps: !scanner.apps.isEmpty,
@@ -56,29 +107,34 @@ struct ContentView: View {
     private func recompute(source: [AppInfo]? = nil, order: [KeyPathComparator<AppInfo>]? = nil) {
         let base = source ?? scanner.apps
         let effectiveOrder = order ?? sortOrder
+        let arch = archFilter
+        let src = sourceFilter
         let filtered = base.filter { app in
             let matchesSearch = searchText.isEmpty
                 || app.name.localizedCaseInsensitiveContains(searchText)
                 || app.bundleID.localizedCaseInsensitiveContains(searchText)
-            let matchesArch = selectedArchFilter == nil || app.architecture == selectedArchFilter
-            let matchesSource = selectedSourceFilter == nil || app.source == selectedSourceFilter
+            let matchesArch = arch == nil || app.architecture == arch
+            let matchesSource = src == nil || app.source == src
             return matchesSearch && matchesArch && matchesSource
         }
         displayApps = filtered.sorted(using: effectiveOrder)
     }
 
-    private var toolbar: some View {
-        HStack(spacing: 12) {
+    // MARK: - Toolbar (native)
+
+    @ToolbarContentBuilder
+    private var toolbarContent: some ToolbarContent {
+        ToolbarItem(placement: .navigation) {
             Button(action: { scanner.scan() }) {
                 Label(scanner.isScanning ? "Scanning…" : "Scan Apps", systemImage: "arrow.clockwise")
             }
             .disabled(scanner.isScanning)
-            .keyboardShortcut("r", modifiers: .command)
+            .help("Scan for installed apps (⌘R)")
+        }
 
-            Divider().frame(height: 20)
-
-            Menu(selectedArchFilter?.rawValue ?? "All Architectures") {
-                Picker("Architecture", selection: $selectedArchFilter) {
+        ToolbarItemGroup(placement: .automatic) {
+            Menu(archFilter?.rawValue ?? "All Architectures") {
+                Picker("Architecture", selection: archBinding) {
                     Text("All Architectures").tag(Optional<AppInfo.Architecture>.none)
                     ForEach(AppInfo.Architecture.allCases, id: \.self) { arch in
                         Text(arch.rawValue).tag(Optional(arch))
@@ -86,10 +142,10 @@ struct ContentView: View {
                 }
                 .pickerStyle(.inline)
             }
-            .frame(width: 180)
+            .help("Filter by architecture")
 
-            Menu(selectedSourceFilter?.rawValue ?? "All Sources") {
-                Picker("Source", selection: $selectedSourceFilter) {
+            Menu(sourceFilter?.rawValue ?? "All Sources") {
+                Picker("Source", selection: sourceBinding) {
                     Text("All Sources").tag(Optional<AppInfo.AppSource>.none)
                     ForEach(AppInfo.AppSource.allCases, id: \.self) { source in
                         Text(source.rawValue).tag(Optional(source))
@@ -97,27 +153,26 @@ struct ContentView: View {
                 }
                 .pickerStyle(.inline)
             }
-            .frame(width: 160)
-
-            Spacer()
-
-            if !scanner.apps.isEmpty {
-                Button(action: exportCSV) {
-                    Label("Export CSV", systemImage: "tablecells")
-                }
-                Button(action: exportJSON) {
-                    Label("Export JSON", systemImage: "curlybraces")
-                }
-                Button(action: exportPDF) {
-                    Label("Export PDF", systemImage: "doc.richtext")
-                }
-                Button(action: copyToClipboard) {
-                    Label("Copy List", systemImage: "doc.on.clipboard")
-                }
-            }
+            .help("Filter by source")
         }
-        .padding(.horizontal, 12)
-        .padding(.vertical, 8)
+
+        ToolbarItemGroup(placement: .primaryAction) {
+            Menu {
+                Button("Export as CSV…") { exportCSV() }
+                Button("Export as JSON…") { exportJSON() }
+                Button("Export as PDF…") { exportPDF() }
+            } label: {
+                Label("Export", systemImage: "square.and.arrow.up")
+            }
+            .disabled(scanner.apps.isEmpty)
+            .help("Export the shown inventory")
+
+            Button(action: copyToClipboard) {
+                Label("Copy List", systemImage: "doc.on.clipboard")
+            }
+            .disabled(scanner.apps.isEmpty)
+            .help("Copy the shown list as text")
+        }
     }
 
     private var emptyState: some View {
