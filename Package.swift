@@ -3,7 +3,7 @@ import PackageDescription
 
 let package = Package(
     name: "AppInventory",
-    platforms: [.macOS(.v13)],
+    platforms: [.macOS("15.0")],
     targets: [
         .executableTarget(
             name: "AppInventory",

@@ -13,10 +13,6 @@ class AppScanner: ObservableObject {
         loadCache()
     }
 
-    private let appleVendorPrefixes = [
-        "com.apple.", "com.osxfuse.", "com.microsoft.OneDrive",
-    ]
-
     private let appleAppNames = Set([
         "Automator", "Books", "Calculator", "Calendar", "Chess",
         "Contacts", "Dictionary", "DVD Player", "FaceTime", "Feedback Assistant",

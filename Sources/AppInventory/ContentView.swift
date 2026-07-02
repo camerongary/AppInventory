@@ -28,6 +28,7 @@ enum SortColumn: String, CaseIterable {
 struct ContentView: View {
     @StateObject private var scanner = AppScanner()
     @State private var searchText = ""
+    @FocusState private var searchFocused: Bool
 
     // Persisted view state (Step 7 — state preservation).
     @AppStorage("filter.architecture") private var archFilterRaw = ""
@@ -100,8 +101,21 @@ struct ContentView: View {
             exportPDF: exportPDF,
             copyList: copyToClipboard,
             showInFinder: { showInFinder(selection) },
-            openSelected: { openApps(selection) }
+            openSelected: { openApps(selection) },
+            focusSearch: { searchFocused = true }
         ))
+    }
+
+    /// True when apps exist but the current search/filters match none of them.
+    private var hasActiveCriteria: Bool {
+        !searchText.isEmpty || archFilter != nil || sourceFilter != nil
+    }
+
+    private func clearFilters() {
+        searchText = ""
+        archFilterRaw = ""
+        sourceFilterRaw = ""
+        recompute()
     }
 
     private func recompute(source: [AppInfo]? = nil, order: [KeyPathComparator<AppInfo>]? = nil) {
@@ -213,6 +227,7 @@ struct ContentView: View {
                     Circle()
                         .fill(archColor(app.architecture))
                         .frame(width: 8, height: 8)
+                        .accessibilityHidden(true)   // decorative; text carries the value
                     Text(app.architecture.rawValue)
                         .font(.callout)
                 }
@@ -224,6 +239,7 @@ struct ContentView: View {
                     Image(systemName: app.source.systemImage)
                         .foregroundColor(sourceColor(app.source))
                         .font(.callout)
+                        .accessibilityHidden(true)   // decorative; text carries the value
                     Text(app.source.rawValue)
                         .font(.callout)
                 }
@@ -271,6 +287,20 @@ struct ContentView: View {
             .width(min: 200, ideal: 280)
         }
         .searchable(text: $searchText, prompt: "Search by name or bundle ID")
+        .searchFocused($searchFocused)
+        .overlay {
+            if displayApps.isEmpty && !scanner.apps.isEmpty && hasActiveCriteria {
+                ContentUnavailableView {
+                    Label("No Matching Apps", systemImage: "magnifyingglass")
+                } description: {
+                    Text(searchText.isEmpty
+                         ? "No apps match the current filters."
+                         : "No apps match “\(searchText)” with the current filters.")
+                } actions: {
+                    Button("Clear Search and Filters") { clearFilters() }
+                }
+            }
+        }
         .copyable(appsMatching(selection))
         .contextMenu(forSelectionType: AppInfo.ID.self) { ids in
             Button("Show in Finder") { showInFinder(ids) }
@@ -381,6 +411,7 @@ struct ContentView: View {
     private func statBadge(_ label: String, count: Int, color: Color) -> some View {
         HStack(spacing: 4) {
             Circle().fill(color).frame(width: 8, height: 8)
+                .accessibilityHidden(true)   // decorative; text carries the value
             Text("\(label): \(count)")
                 .font(.callout)
                 .foregroundColor(.secondary)
@@ -468,6 +499,7 @@ struct AppIconView: View {
                     .frame(width: 20, height: 20)
             }
         }
+        .accessibilityHidden(true)   // decorative; the adjacent name text identifies the app
         .onAppear {
             image = NSWorkspace.shared.icon(forFile: url.path)
         }

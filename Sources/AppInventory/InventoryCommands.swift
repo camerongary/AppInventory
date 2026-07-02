@@ -14,6 +14,7 @@ struct InventoryActions {
     var copyList: () -> Void
     var showInFinder: () -> Void
     var openSelected: () -> Void
+    var focusSearch: () -> Void
 }
 
 private struct InventoryActionsKey: FocusedValueKey {
@@ -46,6 +47,14 @@ struct InventoryCommands: Commands {
             Button("Export as JSON…") { actions?.exportJSON() }
                 .disabled(!(actions?.hasApps ?? false))
             Button("Export as PDF…") { actions?.exportPDF() }
+                .disabled(!(actions?.hasApps ?? false))
+        }
+
+        // Edit ▸ Find… focuses the toolbar search field, per Mac convention.
+        CommandGroup(after: .pasteboard) {
+            Divider()
+            Button("Find…") { actions?.focusSearch() }
+                .keyboardShortcut("f", modifiers: .command)
                 .disabled(!(actions?.hasApps ?? false))
         }
 

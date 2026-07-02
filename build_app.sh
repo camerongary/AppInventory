@@ -52,7 +52,7 @@ cat > "$APP_DIR/Info.plist" << 'PLIST'
     <key>NSHighResolutionCapable</key>
     <true/>
     <key>LSMinimumSystemVersion</key>
-    <string>13.0</string>
+    <string>15.0</string>
     <key>NSPrincipalClass</key>
     <string>NSApplication</string>
 </dict>
