@@ -16,11 +16,18 @@ For each app it reports:
 ## Features
 
 - Scans `/Applications`, `~/Applications`, and `/Applications/Utilities`
-- Sortable columns, search, and filters by architecture and source
+- Sortable columns, search (⌘F), and filters by architecture and source — sort and
+  filters are remembered across launches
 - **Website** column with a clickable link to re-download each app
 - Remembers your last scan and shows it on launch
-- Right-click a row: **Show in Finder**, **Open**, **Copy Path**, **Copy Bundle ID**
+- Full menu-bar command model: Scan (⌘R), Export as CSV (⌘E) / JSON / PDF, and an
+  **Inventory** menu with Show in Finder (⌘⇧R) and Open (⌘O)
+- Select multiple rows; **drag them to Finder, Terminal, or an editor**, or copy
+  with ⌘C (file URL + path)
+- Right-click a row: **Show in Finder**, **Open**, **Open Download Website**,
+  **Copy Path**, **Copy Bundle ID**
 - Export your inventory as **CSV**, **JSON**, or **PDF** (the PDF keeps the website links clickable), plus **Copy List** for a quick rebuild checklist
+- VoiceOver-friendly: nothing is conveyed by color alone
 
 ## Download
 
@@ -43,7 +50,8 @@ The app icon is generated from [`make_icon.py`](make_icon.py); `build_app.sh` bu
 
 The version lives in the [`VERSION`](VERSION) file (single source of truth, stamped into
 the bundle by `build_app.sh`). A tracked pre-commit hook ([`.githooks/pre-commit`](.githooks/pre-commit))
-auto-increments the patch component on every commit. Enable it once after cloning:
+auto-increments the patch component on commits that change app code (documentation-only
+commits don't bump it). Enable it once after cloning:
 
 ```sh
 git config core.hooksPath .githooks
@@ -51,7 +59,7 @@ git config core.hooksPath .githooks
 
 ## Requirements
 
-- macOS 13+
+- macOS 15+
 - Swift 5.9+ toolchain
 
 ## Acknowledgments
