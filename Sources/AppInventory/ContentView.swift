@@ -209,14 +209,13 @@ struct ContentView: View {
     }
 
     private var appTable: some View {
-        Table(displayApps, selection: $selection, sortOrder: sortOrderBinding) {
+        Table(of: AppInfo.self, selection: $selection, sortOrder: sortOrderBinding) {
             TableColumn("Name", value: \.name) { app in
                 HStack(spacing: 6) {
                     AppIconView(url: app.path)
                     Text(app.name)
                         .fontWeight(.medium)
                 }
-                .draggable(app)
             }
             .width(min: 180, ideal: 220)
 
@@ -293,6 +292,13 @@ struct ContentView: View {
                     .truncationMode(.middle)
             }
             .width(min: 200, ideal: 280)
+        } rows: {
+            // Row-level drag (not a cell .draggable, whose gesture would swallow
+            // the double-click primaryAction). Drags the app's file URL.
+            ForEach(displayApps) { app in
+                TableRow(app)
+                    .itemProvider { NSItemProvider(object: app.path as NSURL) }
+            }
         }
         .searchable(text: $searchText, prompt: "Search by name or bundle ID")
         .searchFocused($searchFocused)
