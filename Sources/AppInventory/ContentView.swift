@@ -97,7 +97,7 @@ struct ContentView: View {
         .onReceive(scanner.$apps) { newApps in
             recompute(source: newApps)
         }
-        .onChange(of: searchText) { _ in recompute() }
+        .onChange(of: searchText) { recompute() }
         .focusedSceneValue(\.inventoryActions, InventoryActions(
             isScanning: scanner.isScanning,
             hasApps: !scanner.apps.isEmpty,
@@ -334,7 +334,7 @@ struct ContentView: View {
                 }
             }
         }
-        .copyable(appsMatching(selection))
+        .copyable(appsMatching(selection).map(\.copyItem))
         .contextMenu(forSelectionType: AppInfo.ID.self) { ids in
             Button("Show in Finder") { showInFinder(ids) }
             Button("Open") { openApps(ids) }

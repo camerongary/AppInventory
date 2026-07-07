@@ -89,12 +89,37 @@ struct AppInfo: Identifiable, Codable {
     }
 }
 
-// Lets rows be dragged to Finder/Terminal/editors and copied with ⌘C, offering
-// both the app's file URL and its POSIX path so each destination gets a sensible
-// representation (Finder → the bundle, text fields → the path).
+// Lets rows be dragged to Finder/Terminal/editors, offering both the app's file
+// URL and its POSIX path so each destination gets a sensible representation
+// (Finder → the bundle, Terminal/text fields → the path).
 extension AppInfo: Transferable {
     static var transferRepresentation: some TransferRepresentation {
         ProxyRepresentation(exporting: \.path)
         ProxyRepresentation(exporting: { $0.path.path })
     }
+
+    /// ⌘C payload: pasting into Finder produces the app bundle; pasting into a
+    /// text target produces a readable one-line summary rather than a bare path
+    /// (Copy Path in the Inventory/context menu still gives the bare path).
+    struct CopyItem: Transferable {
+        let app: AppInfo
+
+        static var transferRepresentation: some TransferRepresentation {
+            ProxyRepresentation(exporting: \.app.path)
+            ProxyRepresentation(exporting: \.summaryLine)
+        }
+
+        var summaryLine: String {
+            var parts = [
+                "\(app.name) \(app.version)".trimmingCharacters(in: .whitespaces),
+                app.architecture.rawValue,
+                app.source.rawValue,
+            ]
+            if !app.developer.isEmpty { parts.append(app.developer) }
+            parts.append(app.path.path)
+            return parts.joined(separator: " — ")
+        }
+    }
+
+    var copyItem: CopyItem { CopyItem(app: self) }
 }

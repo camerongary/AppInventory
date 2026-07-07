@@ -64,6 +64,35 @@ PLIST
                         -c "Set :CFBundleShortVersionString $VERSION" \
                         "$APP_DIR/Info.plist"
 
+# App Intents metadata (Shortcuts discovery). SwiftPM doesn't run Xcode's
+# extractor build phase, so emit compiler const-values and invoke it manually.
+TC="$(xcode-select -p)/Toolchains/XcodeDefault.xctoolchain"
+SDK="$(xcrun --show-sdk-path)"
+AIM_TMP=$(mktemp -d)
+plutil -extract constValueProtocols json -o "$AIM_TMP/protos.json" \
+    "$TC/usr/share/swift/SwiftConstantValues/AppIntents.json"
+xcrun swiftc -typecheck Sources/AppInventory/*.swift \
+    -sdk "$SDK" -target arm64-apple-macos15.0 -wmo -module-name AppInventory \
+    -const-gather-protocols-list "$AIM_TMP/protos.json" \
+    -emit-const-values-path "$AIM_TMP/AppInventory.swiftconstvalues"
+ls Sources/AppInventory/*.swift > "$AIM_TMP/sources.txt"
+echo "$AIM_TMP/AppInventory.swiftconstvalues" > "$AIM_TMP/constvals.txt"
+xcrun appintentsmetadataprocessor \
+    --output "$APP_DIR/Resources" \
+    --toolchain-dir "$TC" --module-name AppInventory --sdk-root "$SDK" \
+    --xcode-version "$(xcodebuild -version | tail -1 | awk '{print $3}')" \
+    --platform-family macOS --deployment-target 15.0 \
+    --target-triple arm64-apple-macos15.0 \
+    --source-file-list "$AIM_TMP/sources.txt" \
+    --swift-const-vals-list "$AIM_TMP/constvals.txt" \
+    --force --quiet-warnings > /dev/null 2>&1
+rm -rf "$AIM_TMP"
+if [ -f "$APP_DIR/Resources/Metadata.appintents/extract.actionsdata" ]; then
+    echo "App Intents metadata embedded"
+else
+    echo "WARNING: App Intents metadata missing — Shortcuts actions won't appear"
+fi
+
 # Sign with the user's Apple Development identity. A stable signature keeps
 # TCC/Gatekeeper grants across rebuilds (ad-hoc identities change every build).
 # Falls back to ad-hoc if the certificate is missing/expired so builds never break.

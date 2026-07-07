@@ -22,7 +22,9 @@ For each app it reports:
 - Full menu-bar command model: Scan (⌘R), Export as CSV (⌘E) / JSON / PDF, and an
   **Inventory** menu with Show in Finder (⌘⇧R) and Open (⌘O)
 - Select multiple rows; **drag them to Finder, Terminal, or an editor**, or copy
-  with ⌘C (file URL + path)
+  with ⌘C (pastes the app bundle in Finder, a readable summary line in text targets)
+- **Shortcuts actions** — "Scan Apps" and "Get App Inventory" (CSV or JSON file),
+  so an inventory snapshot can be automated without opening the app
 - Right-click a row: **Show in Finder**, **Open**, **Open Download Website**,
   **Copy Path**, **Copy Bundle ID**
 - Export your inventory as **CSV**, **JSON**, or **PDF** (the PDF keeps the website links clickable), plus **Copy List** for a quick rebuild checklist
