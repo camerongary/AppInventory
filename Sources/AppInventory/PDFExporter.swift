@@ -24,12 +24,13 @@ enum PDFExporter {
     }
 
     private static let columns: [Column] = [
-        Column(title: "Name", width: 150) { $0.name },
-        Column(title: "Version", width: 60) { $0.version },
-        Column(title: "Architecture", width: 95) { $0.architecture.rawValue },
-        Column(title: "Source", width: 110) { $0.source.rawValue },
-        Column(title: "Signed By", width: 145) { $0.developer },
-        Column(title: "Website", width: 160) { stripScheme($0.website) },
+        Column(title: "Name", width: 145) { $0.name },
+        Column(title: "Version", width: 55) { $0.version },
+        Column(title: "Architecture", width: 90) { $0.architecture.rawValue },
+        Column(title: "Source", width: 75) { $0.source.rawValue },
+        Column(title: "Signing", width: 85) { $0.signing == .none ? "" : $0.signing.rawValue },
+        Column(title: "Signed By", width: 130) { $0.developer },
+        Column(title: "Website", width: 140) { stripScheme($0.website) },
     ]
 
     static func makePDF(apps: [AppInfo], lastScanDate: Date?) -> Data? {

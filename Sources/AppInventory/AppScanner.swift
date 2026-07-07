@@ -150,8 +150,10 @@ class AppScanner: ObservableObject {
         let receiptExists = FileManager.default.fileExists(
             atPath: appURL.appendingPathComponent("Contents/_MASReceipt/receipt").path
         )
-        let (source, developer) = detectSource(appURL, hasReceipt: receiptExists)
-        let website = downloadWebsite(appURL, bundleID: bundleID, source: source)
+        let whereFrom = whereFromURL(appURL)
+        let (source, signing, developer) = detectSource(
+            appURL, hasReceipt: receiptExists, wasDownloaded: whereFrom != nil)
+        let website = whereFrom ?? homepageWebsite(bundleID: bundleID, signing: signing)
 
         return AppInfo(
             name: name,
@@ -160,6 +162,7 @@ class AppScanner: ObservableObject {
             version: version,
             architecture: arch,
             source: source,
+            signing: signing,
             developer: developer,
             website: website
         )
@@ -191,25 +194,30 @@ class AppScanner: ObservableObject {
 
     // MARK: - Source Detection
 
-    /// Determines provenance from the code signature, which (unlike the quarantine
-    /// xattr) survives first launch. Returns the source category and, for
-    /// Developer-ID-signed apps, the developer name from the signing certificate.
-    private func detectSource(_ appURL: URL, hasReceipt: Bool) -> (AppInfo.AppSource, String) {
+    /// Determines the distribution channel and signing kind from the code signature,
+    /// which (unlike the quarantine xattr) survives first launch. The two are separate
+    /// facts: the channel says where the app came from; the signing kind says what
+    /// certificate vouches for it. Returns (channel, signing, developer name).
+    private func detectSource(
+        _ appURL: URL, hasReceipt: Bool, wasDownloaded: Bool
+    ) -> (AppInfo.AppSource, AppInfo.SigningKind, String) {
         guard let authority = signingLeafName(appURL) else {
-            // No signature at all — typically a self-built or ad-hoc-signed app.
-            return hasReceipt ? (.appStore, "") : (.unsigned, "")
+            // Unsigned/ad-hoc: download metadata is the only channel evidence left;
+            // without it, on this machine an unsigned app is almost always self-built.
+            if hasReceipt { return (.appStore, .none, "") }
+            return (wasDownloaded ? .downloaded : .selfBuilt, .none, "")
         }
 
         if hasReceipt || authority.hasPrefix("Apple Mac OS Application Signing") {
-            return (.appStore, "")
+            return (.appStore, .appStore, "")
         }
         if authority.hasPrefix("Developer ID Application:") {
-            return (.developerID, developerName(from: authority))
+            return (.downloaded, .developerID, developerName(from: authority))
         }
         if authority.hasPrefix("Apple Development") || authority.hasPrefix("Apple Distribution") {
-            return (.development, developerName(from: authority))
+            return (.selfBuilt, .development, developerName(from: authority))
         }
-        return (.unknown, "")
+        return (wasDownloaded ? .downloaded : .unknown, .other, "")
     }
 
     /// Common name of the leaf (signing) certificate, e.g.
@@ -244,15 +252,14 @@ class AppScanner: ObservableObject {
 
     // MARK: - Download Website
 
-    /// Best-effort URL for where an app was obtained: the real "where from" download
-    /// URL if macOS still has it, otherwise the developer's site derived from the
-    /// bundle ID (only for signed apps, where the bundle ID is a real reverse-DNS domain).
-    private func downloadWebsite(_ appURL: URL, bundleID: String, source: AppInfo.AppSource) -> String {
-        if let url = whereFromURL(appURL) { return url }
-        switch source {
+    /// Fallback website when no "where from" metadata survives: the developer's site
+    /// derived from the bundle ID — but only for signed apps, where the bundle ID is
+    /// a real reverse-DNS domain rather than a self-built placeholder.
+    private func homepageWebsite(bundleID: String, signing: AppInfo.SigningKind) -> String {
+        switch signing {
         case .appStore, .developerID, .development:
             return homepage(fromBundleID: bundleID) ?? ""
-        case .unsigned, .unknown:
+        case .other, .none:
             return ""
         }
     }

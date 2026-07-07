@@ -9,6 +9,7 @@ struct AppInfo: Identifiable, Codable {
     let version: String
     let architecture: Architecture
     let source: AppSource
+    let signing: SigningKind
     let developer: String   // signing identity (e.g. "Mozilla Corporation"), or "" if none
     let website: String     // best-effort download/developer URL, or "" if unknown
 
@@ -23,11 +24,12 @@ struct AppInfo: Identifiable, Codable {
         }
     }
 
+    /// The distribution channel — where the app came from. One fact per column:
+    /// the certificate details live in `signing`/`developer`, not here.
     enum AppSource: String, CaseIterable, Comparable, Codable {
         case appStore = "App Store"
-        case developerID = "Developer ID"
-        case development = "Development"
-        case unsigned = "Unsigned / Self-Built"
+        case downloaded = "Downloaded"
+        case selfBuilt = "Self-Built"
         case unknown = "Unknown"
 
         static func < (lhs: AppSource, rhs: AppSource) -> Bool {
@@ -37,21 +39,34 @@ struct AppInfo: Identifiable, Codable {
         var systemImage: String {
             switch self {
             case .appStore: return "cart.fill"
-            case .developerID: return "checkmark.seal.fill"
-            case .development: return "hammer.fill"
-            case .unsigned: return "exclamationmark.triangle.fill"
+            case .downloaded: return "arrow.down.circle.fill"
+            case .selfBuilt: return "hammer.fill"
             case .unknown: return "questionmark.circle.fill"
             }
         }
     }
 
+    /// The kind of certificate the app is signed with.
+    enum SigningKind: String, CaseIterable, Comparable, Codable {
+        case developerID = "Developer ID"
+        case appStore = "App Store"
+        case development = "Development"
+        case other = "Other"
+        case none = "None"
+
+        static func < (lhs: SigningKind, rhs: SigningKind) -> Bool {
+            lhs.rawValue < rhs.rawValue
+        }
+    }
+
     var csvRow: String {
-        [name, version, architecture.rawValue, source.rawValue, developer, website, bundleID, path.path]
+        [name, version, architecture.rawValue, source.rawValue, signing.rawValue,
+         developer, website, bundleID, path.path]
             .map { field in "\"\(field.replacingOccurrences(of: "\"", with: "\"\""))\"" }
             .joined(separator: ",")
     }
 
-    static let csvHeader = "Name,Version,Architecture,Source,Signed By,Website,Bundle ID,Path"
+    static let csvHeader = "Name,Version,Architecture,Source,Signing,Signed By,Website,Bundle ID,Path"
 
     /// Clean, stable shape for JSON export: plain POSIX path and CSV-matching
     /// field names, in a logical (non-alphabetical) order.
@@ -60,6 +75,7 @@ struct AppInfo: Identifiable, Codable {
         let version: String
         let architecture: String
         let source: String
+        let signing: String
         let signedBy: String
         let website: String
         let bundleID: String
@@ -68,8 +84,8 @@ struct AppInfo: Identifiable, Codable {
 
     var exportItem: Export {
         Export(name: name, version: version, architecture: architecture.rawValue,
-               source: source.rawValue, signedBy: developer, website: website,
-               bundleID: bundleID, path: path.path)
+               source: source.rawValue, signing: signing.rawValue, signedBy: developer,
+               website: website, bundleID: bundleID, path: path.path)
     }
 }
 

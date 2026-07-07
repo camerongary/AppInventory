@@ -5,11 +5,10 @@ A native macOS (SwiftUI) app that inventories the non-Apple applications install
 For each app it reports:
 
 - **Architecture** — Apple Silicon, Intel, or Universal (read via `Bundle.executableArchitectures`)
-- **Source** — where it came from, determined from the code signature:
-  - **App Store** (Mac App Store signing / `_MASReceipt`)
-  - **Developer ID** (signed by a known developer — downloaded from their site)
-  - **Development** (Apple Development/Distribution signed)
-  - **Unsigned / Self-Built**
+- **Source** — the distribution channel, determined from the code signature and
+  download metadata: **App Store**, **Downloaded**, or **Self-Built**
+- **Signing** — the kind of certificate: **Developer ID**, **App Store**,
+  **Development**, or **None**
 - **Signed By** — the developer name from the signing certificate
 - Version, Bundle ID, and full path
 

@@ -5,7 +5,7 @@ import UniformTypeIdentifiers
 /// (a `KeyPathComparator` itself isn't serializable). The key paths here must match
 /// the `value:` key paths used by the table's columns.
 enum SortColumn: String, CaseIterable {
-    case name, version, architecture, source, signedBy, website, bundleID, path
+    case name, version, architecture, source, signing, signedBy, website, bundleID, path
 
     var comparator: KeyPathComparator<AppInfo> {
         switch self {
@@ -13,6 +13,7 @@ enum SortColumn: String, CaseIterable {
         case .version:      return KeyPathComparator(\AppInfo.version)
         case .architecture: return KeyPathComparator(\AppInfo.architecture.rawValue)
         case .source:       return KeyPathComparator(\AppInfo.source.rawValue)
+        case .signing:      return KeyPathComparator(\AppInfo.signing.rawValue)
         case .signedBy:     return KeyPathComparator(\AppInfo.developer)
         case .website:      return KeyPathComparator(\AppInfo.website)
         case .bundleID:     return KeyPathComparator(\AppInfo.bundleID)
@@ -244,7 +245,14 @@ struct ContentView: View {
                         .font(.callout)
                 }
             }
-            .width(min: 130, ideal: 160)
+            .width(min: 110, ideal: 130)
+
+            TableColumn("Signing", value: \.signing.rawValue) { app in
+                Text(app.signing == .none ? "—" : app.signing.rawValue)
+                    .font(.callout)
+                    .foregroundColor(app.signing == .none ? .secondary : .primary)
+            }
+            .width(min: 95, ideal: 115)
 
             TableColumn("Signed By", value: \.developer) { app in
                 Text(app.developer.isEmpty ? "—" : app.developer)
@@ -430,9 +438,8 @@ struct ContentView: View {
     private func sourceColor(_ source: AppInfo.AppSource) -> Color {
         switch source {
         case .appStore: return .blue
-        case .developerID: return .green
-        case .development: return .orange
-        case .unsigned: return .red
+        case .downloaded: return .green
+        case .selfBuilt: return .orange
         case .unknown: return .gray
         }
     }
