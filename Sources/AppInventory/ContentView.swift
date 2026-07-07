@@ -209,10 +209,14 @@ struct ContentView: View {
     }
 
     private var appTable: some View {
-        Table(of: AppInfo.self, selection: $selection, sortOrder: sortOrderBinding) {
+        Table(displayApps, selection: $selection, sortOrder: sortOrderBinding) {
             TableColumn("Name", value: \.name) { app in
                 HStack(spacing: 6) {
+                    // Draggable on the icon only: a whole-cell drag gesture would
+                    // swallow double-clicks before the row's primaryAction fires,
+                    // and TableRow.itemProvider is inert on current macOS.
                     AppIconView(url: app.path)
+                        .draggable(app)
                     Text(app.name)
                         .fontWeight(.medium)
                 }
@@ -292,13 +296,6 @@ struct ContentView: View {
                     .truncationMode(.middle)
             }
             .width(min: 200, ideal: 280)
-        } rows: {
-            // Row-level drag (not a cell .draggable, whose gesture would swallow
-            // the double-click primaryAction). Drags the app's file URL.
-            ForEach(displayApps) { app in
-                TableRow(app)
-                    .itemProvider { NSItemProvider(object: app.path as NSURL) }
-            }
         }
         .searchable(text: $searchText, prompt: "Search by name or bundle ID")
         .searchFocused($searchFocused)
