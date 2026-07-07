@@ -209,14 +209,10 @@ struct ContentView: View {
     }
 
     private var appTable: some View {
-        Table(displayApps, selection: $selection, sortOrder: sortOrderBinding) {
+        Table(of: AppInfo.self, selection: $selection, sortOrder: sortOrderBinding) {
             TableColumn("Name", value: \.name) { app in
                 HStack(spacing: 6) {
-                    // Draggable on the icon only: a whole-cell drag gesture would
-                    // swallow double-clicks before the row's primaryAction fires,
-                    // and TableRow.itemProvider is inert on current macOS.
                     AppIconView(url: app.path)
-                        .draggable(app)
                     Text(app.name)
                         .fontWeight(.medium)
                 }
@@ -296,6 +292,13 @@ struct ContentView: View {
                     .truncationMode(.middle)
             }
             .width(min: 200, ideal: 280)
+        } rows: {
+            // TableRow.draggable (macOS 14+) is the row-drag API that actually
+            // works: cell-level .draggable swallows double-clicks, and the legacy
+            // TableRow.itemProvider (macOS 12) is inert on current macOS.
+            ForEach(displayApps) { app in
+                TableRow(app).draggable(app)
+            }
         }
         .searchable(text: $searchText, prompt: "Search by name or bundle ID")
         .searchFocused($searchFocused)
