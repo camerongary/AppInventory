@@ -31,9 +31,9 @@ For each app it reports:
 ## Download
 
 Grab the latest `.dmg` from the [Releases](https://github.com/camerongary/AppInventory/releases)
-page, open it, and drag **App Inventory** to Applications. The app is ad-hoc signed
-(no Developer ID), so on first launch right-click it and choose **Open** to get past
-Gatekeeper's "unidentified developer" prompt.
+page, open it, and drag **App Inventory** to Applications. The app is signed with an
+Apple Development certificate (not Developer ID, and not notarized), so on first
+launch right-click it and choose **Open** to get past Gatekeeper's prompt.
 
 ## Building
 

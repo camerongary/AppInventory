@@ -14,6 +14,10 @@ struct InventoryActions {
     var copyList: () -> Void
     var showInFinder: () -> Void
     var openSelected: () -> Void
+    var selectionHasWebsite: Bool
+    var openWebsites: () -> Void
+    var copyPaths: () -> Void
+    var copyBundleIDs: () -> Void
     var focusSearch: () -> Void
 }
 
@@ -58,7 +62,8 @@ struct InventoryCommands: Commands {
                 .disabled(!(actions?.hasApps ?? false))
         }
 
-        // Domain menu for selection/list actions.
+        // Domain menu carrying the full selection/list command set (everything
+        // in the context menu must also be reachable from the menu bar).
         CommandMenu("Inventory") {
             Button("Show in Finder") { actions?.showInFinder() }
                 .keyboardShortcut("r", modifiers: [.command, .shift])
@@ -66,7 +71,13 @@ struct InventoryCommands: Commands {
             Button("Open") { actions?.openSelected() }
                 .keyboardShortcut("o", modifiers: .command)
                 .disabled(!(actions?.hasSelection ?? false))
+            Button("Open Download Website") { actions?.openWebsites() }
+                .disabled(!(actions?.selectionHasWebsite ?? false))
             Divider()
+            Button("Copy Path") { actions?.copyPaths() }
+                .disabled(!(actions?.hasSelection ?? false))
+            Button("Copy Bundle ID") { actions?.copyBundleIDs() }
+                .disabled(!(actions?.hasSelection ?? false))
             Button("Copy List") { actions?.copyList() }
                 .disabled(!(actions?.hasApps ?? false))
         }

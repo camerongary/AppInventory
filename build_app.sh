@@ -64,6 +64,18 @@ PLIST
                         -c "Set :CFBundleShortVersionString $VERSION" \
                         "$APP_DIR/Info.plist"
 
+# Sign with the user's Apple Development identity. A stable signature keeps
+# TCC/Gatekeeper grants across rebuilds (ad-hoc identities change every build).
+# Falls back to ad-hoc if the certificate is missing/expired so builds never break.
+SIGN_IDENTITY="Apple Development: cameron@camerongary.com (NL2W63U24F)"
+if security find-identity -v -p codesigning | grep -q "$SIGN_IDENTITY"; then
+    codesign --force --options runtime --sign "$SIGN_IDENTITY" "$APP_NAME.app"
+    echo "Signed: $SIGN_IDENTITY"
+else
+    codesign --force --sign - "$APP_NAME.app"
+    echo "Signed: ad-hoc (development certificate not found)"
+fi
+
 echo "Built: $(pwd)/$APP_NAME.app (v$VERSION)"
 
 # Install to /Applications. Remove the destination FIRST — otherwise `cp -R src dst`

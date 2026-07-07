@@ -41,6 +41,9 @@ struct ContentView: View {
     @State private var displayApps: [AppInfo] = []
     @State private var sortOrder: [KeyPathComparator<AppInfo>]
 
+    // Right-click the header to show/hide columns; persisted via scene restoration.
+    @SceneStorage("table.columns") private var columnCustomization: TableColumnCustomization<AppInfo>
+
     init() {
         let column = SortColumn(rawValue: UserDefaults.standard.string(forKey: "sort.column") ?? "") ?? .name
         let ascending = UserDefaults.standard.object(forKey: "sort.ascending") as? Bool ?? true
@@ -103,6 +106,10 @@ struct ContentView: View {
             copyList: copyToClipboard,
             showInFinder: { showInFinder(selection) },
             openSelected: { openApps(selection) },
+            selectionHasWebsite: appsMatching(selection).contains { !$0.website.isEmpty },
+            openWebsites: { openWebsites(selection) },
+            copyPaths: { copyPaths(selection) },
+            copyBundleIDs: { copyBundleIDs(selection) },
             focusSearch: { searchFocused = true }
         ))
     }
@@ -209,7 +216,8 @@ struct ContentView: View {
     }
 
     private var appTable: some View {
-        Table(of: AppInfo.self, selection: $selection, sortOrder: sortOrderBinding) {
+        Table(of: AppInfo.self, selection: $selection, sortOrder: sortOrderBinding,
+              columnCustomization: $columnCustomization) {
             TableColumn("Name", value: \.name) { app in
                 HStack(spacing: 6) {
                     AppIconView(url: app.path)
@@ -221,6 +229,7 @@ struct ContentView: View {
 
             TableColumn("Version", value: \.version)
                 .width(min: 60, ideal: 80)
+                .customizationID("version")
 
             TableColumn("Architecture", value: \.architecture.rawValue) { app in
                 HStack(spacing: 4) {
@@ -233,6 +242,7 @@ struct ContentView: View {
                 }
             }
             .width(min: 110, ideal: 130)
+            .customizationID("architecture")
 
             TableColumn("Source", value: \.source.rawValue) { app in
                 HStack(spacing: 4) {
@@ -245,6 +255,7 @@ struct ContentView: View {
                 }
             }
             .width(min: 110, ideal: 130)
+            .customizationID("source")
 
             TableColumn("Signing", value: \.signing.rawValue) { app in
                 Text(app.signing == .none ? "—" : app.signing.rawValue)
@@ -252,6 +263,7 @@ struct ContentView: View {
                     .foregroundColor(app.signing == .none ? .secondary : .primary)
             }
             .width(min: 95, ideal: 115)
+            .customizationID("signing")
 
             TableColumn("Signed By", value: \.developer) { app in
                 Text(app.developer.isEmpty ? "—" : app.developer)
@@ -261,6 +273,7 @@ struct ContentView: View {
                     .truncationMode(.tail)
             }
             .width(min: 120, ideal: 170)
+            .customizationID("signedBy")
 
             TableColumn("Website", value: \.website) { app in
                 if let url = URL(string: app.website), !app.website.isEmpty {
@@ -276,6 +289,7 @@ struct ContentView: View {
                 }
             }
             .width(min: 120, ideal: 160)
+            .customizationID("website")
 
             TableColumn("Bundle ID", value: \.bundleID) { app in
                 Text(app.bundleID)
@@ -283,6 +297,7 @@ struct ContentView: View {
                     .foregroundColor(.secondary)
             }
             .width(min: 180, ideal: 240)
+            .customizationID("bundleID")
 
             TableColumn("Path", value: \.path.path) { app in
                 Text(app.path.path)
@@ -292,6 +307,7 @@ struct ContentView: View {
                     .truncationMode(.middle)
             }
             .width(min: 200, ideal: 280)
+            .customizationID("path")
         } rows: {
             // TableRow.draggable (macOS 14+) is the row-drag API that actually
             // works: cell-level .draggable swallows double-clicks, and the legacy
