@@ -6,6 +6,8 @@ struct AppInventoryApp: App {
         WindowGroup("App Inventory") {
             ContentView()
         }
+        .defaultSize(width: 1150, height: 650)
+        .windowResizability(.contentMinSize)
         .commands {
             CommandGroup(replacing: .newItem) {}
             InventoryCommands()

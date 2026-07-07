@@ -89,7 +89,10 @@ struct ContentView: View {
             Divider()
             statusBar
         }
-        .frame(minWidth: 900, minHeight: 500)
+        // Unbounded max: without it, zoom (double-click title bar) snaps the
+        // window back to the content's reported ideal size.
+        .frame(minWidth: 900, maxWidth: .infinity, minHeight: 500, maxHeight: .infinity)
+        .background(ZoomBounceFix())
         .toolbar { toolbarContent }
         .onReceive(scanner.$apps) { newApps in
             recompute(source: newApps)
