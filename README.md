@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="docs/icon.png" width="128" alt="App Inventory icon">
+</p>
+
 # App Inventory
 
 A native macOS (SwiftUI) app that inventories the non-Apple applications installed on your Mac — handy when rebuilding a machine.
